@@ -1,165 +1,243 @@
-const credentials = { username: 'admin', password: 'certa2024' };
-const sessionKey = 'certa-session-auth';
+// Lógica do Painel Admin (admin.html) · Saeex-Naee
+
+const credentials = { username: 'admin', password: 'certa2024' }; // mantém login/senha originais
+const sessionKey = 'saeex-naee-session-auth';
+
 let institutions = [];
 let customColumns = [];
 
 (async function initAdmin() {
   customColumns = loadCustomColumns();
-  institutions = applyQuantityDefaults(await loadInstitutions(), customColumns);
+  const institutionsRaw = await loadInstitutions();
+  institutions = applyQuantityDefaults(institutionsRaw, customColumns);
+
   handleAuth();
   populateNewTypeSelect();
+  renderCustomColumns();
   renderTable();
   bindEvents();
 })();
 
+/**
+ * Garante overlay de login e sessão simples.
+ */
+function handleAuth() {
+  const overlay = document.getElementById('login-overlay');
+  const loggedIn = sessionStorage.getItem(sessionKey) === 'true';
+
+  if (loggedIn) {
+    if (overlay) overlay.style.display = 'none';
+    return;
+  }
+
+  if (overlay) overlay.style.display = 'flex';
+
+  const loginButton = document.getElementById('login-button');
+  if (!loginButton) return;
+
+  loginButton.addEventListener('click', () => {
+    const userInput = document.getElementById('username');
+    const passInput = document.getElementById('password');
+    const errorBox = document.getElementById('login-error');
+
+    const username = userInput?.value || '';
+    const password = passInput?.value || '';
+
+    if (
+      username === credentials.username &&
+      password === credentials.password
+    ) {
+      sessionStorage.setItem(sessionKey, 'true');
+      if (overlay) overlay.style.display = 'none';
+    } else if (errorBox) {
+      errorBox.textContent = 'Usuário ou senha inválidos.';
+      errorBox.style.display = 'block';
+    }
+  });
+}
+
+/**
+ * Preenche o select de tipo da nova instituição.
+ */
 function populateNewTypeSelect() {
   const select = document.getElementById('new-type-select');
   if (!select) return;
-  select.innerHTML = DEFAULT_TYPES.map((t) => `<option value="${t}">${t}</option>`).join('');
+
+  const typesSet = new Set(DEFAULT_TYPES);
+  institutions.forEach((inst) => {
+    const t = (inst.Tipo || '').trim();
+    if (t) typesSet.add(t);
+  });
+
+  select.innerHTML = '';
+  Array.from(typesSet).forEach((type) => {
+    const option = document.createElement('option');
+    option.value = type;
+    option.textContent = type;
+    select.appendChild(option);
+  });
 }
 
-function handleAuth() {
-  const logged = localStorage.getItem(sessionKey);
-  if (!logged) {
-    document.getElementById('login-overlay').style.display = 'grid';
-    document.getElementById('login-btn').addEventListener('click', () => {
-      const username = document.getElementById('username').value;
-      const password = document.getElementById('password').value;
-      if (username === credentials.username && password === credentials.password) {
-        localStorage.setItem(sessionKey, 'true');
-        document.getElementById('login-overlay').style.display = 'none';
-      } else {
-        document.getElementById('login-feedback').textContent = 'Usuário ou senha inválidos';
+/**
+ * Renderiza lista de colunas dinâmicas (apenas nomes).
+ */
+function renderCustomColumns() {
+  const container = document.getElementById('custom-columns-list');
+  if (!container) return;
+
+  if (customColumns.length === 0) {
+    container.innerHTML = '<p class="muted">Nenhuma coluna extra cadastrada.</p>';
+    return;
+  }
+
+  container.innerHTML = '';
+  customColumns.forEach((column) => {
+    const item = document.createElement('div');
+    item.className = 'chip';
+    item.textContent = column;
+    container.appendChild(item);
+  });
+}
+
+/**
+ * Renderiza tabela principal de instituições.
+ */
+function renderTable() {
+  const tbody = document.getElementById('institutions-body');
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  institutions.forEach((inst, index) => {
+    const tr = document.createElement('tr');
+
+    tr.innerHTML = `
+      <td>${inst.Municipio || ''}</td>
+      <td>${inst.Regiao || ''}</td>
+      <td>${inst['Nome Inst.'] || ''}</td>
+      <td>${inst.Tipo || ''}</td>
+      <td>${inst.Endereco || ''}</td>
+      <td>${inst.Telefone || ''}</td>
+      <td>${inst['E-mail'] || ''}</td>
+      <td><input type="number" min="0" data-index="${index}" data-field="Qt Profissionais" value="${Number(inst['Qt Profissionais'] || 0)}" /></td>
+      <td><input type="number" min="0" data-index="${index}" data-field="Qt Estudantes Contemplados" value="${Number(inst['Qt Estudantes Contemplados'] || 0)}" /></td>
+      ${customColumns
+        .map(
+          (column) =>
+            `<td><input type="number" min="0" data-index="${index}" data-field="${column}" value="${Number(
+              inst[column] || 0,
+            )}" /></td>`,
+        )
+        .join('')}
+      <td><button type="button" class="danger" data-action="delete" data-index="${index}">Excluir</button></td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+
+/**
+ * Eventos principais do Admin.
+ */
+function bindEvents() {
+  const logoutButton = document.getElementById('logout-button');
+  if (logoutButton) {
+    logoutButton.addEventListener('click', () => {
+      sessionStorage.removeItem(sessionKey);
+      window.location.reload();
+    });
+  }
+
+  const addColumnForm = document.getElementById('new-column-form');
+  if (addColumnForm) {
+    addColumnForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+      const input = document.getElementById('new-column-name');
+      const name = input?.value.trim();
+      if (!name) return;
+      if (!customColumns.includes(name)) {
+        customColumns.push(name);
+        saveCustomColumns(customColumns);
+        // também garante a coluna nas instituições existentes
+        institutions = applyQuantityDefaults(institutions, customColumns);
+        saveInstitutions(institutions);
+        renderCustomColumns();
+        renderTable();
+      }
+      if (input) input.value = '';
+    });
+  }
+
+  const newInstForm = document.getElementById('new-institution-form');
+  if (newInstForm) {
+    newInstForm.addEventListener('submit', (event) => {
+      event.preventDefault();
+
+      const municipio = document.getElementById('new-municipio');
+      const regiao = document.getElementById('new-regiao');
+      const nomeInst = document.getElementById('new-nome-inst');
+      const tipo = document.getElementById('new-type-select');
+      const endereco = document.getElementById('new-endereco');
+      const telefone = document.getElementById('new-telefone');
+      const email = document.getElementById('new-email');
+
+      const newItem = {
+        Municipio: municipio?.value.trim() || '',
+        Regiao: regiao?.value.trim() || '',
+        'Nome Inst.': nomeInst?.value.trim() || '',
+        Tipo: tipo?.value.trim() || '',
+        Endereco: endereco?.value.trim() || '',
+        Telefone: telefone?.value.trim() || '',
+        'E-mail': email?.value.trim() || '',
+      };
+
+      // Garante as colunas numéricas padrão e customizadas
+      institutions.push(newItem);
+      institutions = applyQuantityDefaults(institutions, customColumns);
+      saveInstitutions(institutions);
+      renderTable();
+
+      newInstForm.reset();
+      populateNewTypeSelect();
+    });
+  }
+
+  // Atualização de campos numéricos + excluir linha
+  const tbody = document.getElementById('institutions-body');
+  if (tbody) {
+    tbody.addEventListener('input', handleFieldUpdate);
+    tbody.addEventListener('click', (event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) return;
+      const action = target.getAttribute('data-action');
+      if (action === 'delete') {
+        const idx = Number(target.getAttribute('data-index'));
+        if (Number.isInteger(idx) && idx >= 0 && idx < institutions.length) {
+          institutions.splice(idx, 1);
+          saveInstitutions(institutions);
+          renderTable();
+        }
       }
     });
   }
 }
 
-function bindEvents() {
-  document.getElementById('add-column-btn').addEventListener('click', () => {
-    const label = prompt('Nome da nova coluna de quantidade:');
-    if (!label) return;
-    if (QUANTITY_FIELDS.includes(label) || customColumns.includes(label)) {
-      alert('Essa coluna já existe.');
-      return;
-    }
-    customColumns.push(label);
-    institutions = applyQuantityDefaults(institutions, customColumns);
-    saveCustomColumns(customColumns);
-    saveInstitutions(institutions);
-    renderTable();
-  });
-
-  document.getElementById('logout-btn').addEventListener('click', () => {
-    localStorage.removeItem(sessionKey);
-    location.reload();
-  });
-
-  document.getElementById('new-institution-form').addEventListener('submit', (e) => {
-    e.preventDefault();
-    const form = e.target;
-    const entry = Object.fromEntries(new FormData(form).entries());
-    QUANTITY_FIELDS.forEach((field) => {
-      entry[field] = 0;
-    });
-    customColumns.forEach((field) => {
-      entry[field] = 0;
-    });
-    institutions.push(entry);
-    saveInstitutions(institutions);
-    form.reset();
-    renderTable();
-  });
-}
-
-function renderTable() {
-  const table = document.getElementById('institutions-table');
-  const quantityColumns = [...QUANTITY_FIELDS, ...customColumns];
-  const headers = [
-    'Município',
-    'Região',
-    'Nome Inst.',
-    'Tipo',
-    'Endereço',
-    'Telefone',
-    'E-mail',
-    ...quantityColumns,
-    'Ações',
-  ];
-
-  const thead = `
-    <thead>
-      <tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr>
-    </thead>
-  `;
-
-  const rows = institutions
-    .map((item, index) => {
-      const quantityCells = quantityColumns
-        .map(
-          (col) => `
-          <td>
-            <input type="number" min="0" value="${item[col] || 0}" data-index="${index}" data-field="${col}" class="quantity-input" />
-          </td>`
-        )
-        .join('');
-
-      return `
-        <tr>
-          <td>${item.Municipio || ''}</td>
-          <td>${item.Regiao || ''}</td>
-          <td>${item['Nome Inst.'] || ''}</td>
-          <td>
-            <select data-index="${index}" data-field="Tipo" class="type-select">
-              ${DEFAULT_TYPES.map((t) => `<option value="${t}" ${t === item.Tipo ? 'selected' : ''}>${t}</option>`).join('')}
-            </select>
-          </td>
-          <td><input value="${item.Endereco || ''}" data-index="${index}" data-field="Endereco" /></td>
-          <td><input value="${item.Telefone || ''}" data-index="${index}" data-field="Telefone" /></td>
-          <td><input value="${item['E-mail'] || ''}" data-index="${index}" data-field="E-mail" /></td>
-          ${quantityCells}
-          <td>
-            <button class="danger" data-action="delete" data-index="${index}">Excluir</button>
-          </td>
-        </tr>
-      `;
-    })
-    .join('');
-
-  table.innerHTML = `
-    ${thead}
-    <tbody>
-      ${rows}
-    </tbody>
-  `;
-
-  bindTableEvents();
-}
-
-function bindTableEvents() {
-  document.querySelectorAll('.quantity-input').forEach((input) => {
-    input.addEventListener('change', handleFieldUpdate);
-  });
-  document.querySelectorAll('#institutions-table input:not(.quantity-input)').forEach((input) => {
-    input.addEventListener('change', handleFieldUpdate);
-  });
-  document.querySelectorAll('.type-select').forEach((select) => {
-    select.addEventListener('change', handleFieldUpdate);
-  });
-  document.querySelectorAll('button[data-action="delete"]').forEach((btn) => {
-    btn.addEventListener('click', (e) => {
-      const idx = Number(e.target.getAttribute('data-index'));
-      institutions.splice(idx, 1);
-      saveInstitutions(institutions);
-      renderTable();
-    });
-  });
-}
-
+/**
+ * Atualiza o objeto quando o usuário altera um input numérico/texto.
+ */
 function handleFieldUpdate(event) {
   const element = event.target;
+  if (!(element instanceof HTMLInputElement)) return;
+
   const idx = Number(element.getAttribute('data-index'));
   const field = element.getAttribute('data-field');
-  institutions[idx][field] = element.type === 'number' ? Number(element.value) : element.value;
+
+  if (!field || !Number.isInteger(idx) || idx < 0 || idx >= institutions.length) {
+    return;
+  }
+
+  institutions[idx][field] =
+    element.type === 'number' ? Number(element.value || 0) : element.value;
+
   saveInstitutions(institutions);
 }
