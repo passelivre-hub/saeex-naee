@@ -1,13 +1,43 @@
-# Painel CERTA FCEE
+# Painel Saeex-Naee · FCEE
 
-Projeto estático com Painel Estatístico e Painel Admin para o Centro de Referência em Tecnologia Assistiva (CERTA) da Fundação Catarinense de Educação Especial.
+Projeto estático com **Painel Estatístico** (público) e **Painel Admin** para acompanhamento das assessorias do **Saeex-Naee** da Fundação Catarinense de Educação Especial (FCEE).
 
-## Estrutura
-- `index.html`: Painel Estatístico com gráficos e mapa de assessorias.
-- `admin.html`: Painel Admin com login, cadastro de instituições, colunas de quantidade dinâmicas e links para mapa e saída.
-- `data/instituicoes.csv`: Cadastro inicial das instituições CERTA com quantidades zeradas.
-- `scripts/`: Lógica compartilhada, dashboard e administração.
-- `styles/style.css`: Estilos gerais dos painéis.
+## Estrutura de arquivos
 
-## Uso
-Abra `index.html` para visualizar o painel público e `admin.html` para o painel administrativo. As credenciais padrão do admin são **usuário** `admin` e **senha** `certa2024`. Os dados são persistidos no `localStorage` do navegador.
+- `index.html`  
+  Painel Estatístico com cartões de resumo, **gráficos** e **mapa de municípios atendidos**.
+
+- `admin.html`  
+  Painel Admin com:
+  - login simples;
+  - listagem e edição das instituições;
+  - criação de **novas colunas de quantidade** (dinâmicas);
+  - link para o painel público e botão de saída.
+
+- `data/instituicoes.csv`  
+  Cadastro inicial das instituições, utilizado tanto pelo Painel Admin quanto pelo Painel Estatístico e pelo mapa.
+
+- `sc_municipios.geojson`  
+  Arquivo GeoJSON com os municípios de Santa Catarina (usado no mapa).
+
+- `scripts/shared-data.js`  
+  Funções compartilhadas de carregamento/normalização de dados (CSV + localStorage).
+
+- `scripts/main.js`  
+  Lógica do painel público (cartões, gráficos, mapa).
+
+- `scripts/admin.js`  
+  Lógica do painel Admin (login, colunas dinâmicas, tabela e formulários).
+
+- `styles/style.css`  
+  Estilos gerais dos painéis (layout, tipografia, tabelas, mapa, overlay de login etc.).
+
+## Logos (Painel e Admin)
+
+Os dois arquivos (`index.html` e `admin.html`) esperam encontrar as logos nesta estrutura:
+
+```text
+saeex-naee/
+  logos/
+    logo-fcee.png
+    logo-saeex-naee.png
