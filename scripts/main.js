@@ -1,6 +1,6 @@
 (async function initDashboard() {
-  const institutions = await loadInstitutions();
   const customColumns = loadCustomColumns();
+  const institutions = applyQuantityDefaults(await loadInstitutions(), customColumns);
 
   renderSummaryCards(institutions, customColumns);
   renderTipoChart(institutions, customColumns);
@@ -10,25 +10,20 @@
 
 function renderSummaryCards(data, customColumns) {
   const container = document.getElementById('summary-cards');
-  const totalCapacitacoes = data.reduce((total, item) => total + sumQuantities(item, customColumns), 0);
+  const totalAssessorias = data.reduce((total, item) => total + sumQuantities(item, customColumns), 0);
   const totalInstituicoes = data.length;
   const regioes = new Set(data.map((i) => i.Regiao));
 
   const cards = [
     {
-      title: 'Total de Capacitações e Recursos',
-      value: totalCapacitacoes,
+      title: 'Número de Assessorias registradas',
+      value: totalAssessorias,
       badge: `${totalInstituicoes} instituições ativas`,
     },
     {
       title: 'Regiões atendidas',
       value: regioes.size,
       badge: 'Abrangência estadual',
-    },
-    {
-      title: 'Tipos cadastrados',
-      value: new Set(data.map((i) => i.Tipo)).size,
-      badge: 'Oficinas, Recursos de TA, Pedagógicos e Open Day',
     },
   ];
 
@@ -46,21 +41,10 @@ function renderSummaryCards(data, customColumns) {
 }
 
 function renderTipoChart(data, customColumns) {
-  const totals = {
-    Oficinas: 0,
-    'Recursos de TA': 0,
-    'Recursos Pedagógicos': 0,
-    'Open Day': 0,
-  };
-
+  const totals = {};
   data.forEach((item) => {
-    totals['Oficinas'] += Number(item['Qt Oficinas'] || 0);
-    totals['Recursos de TA'] += Number(item['Qt Recurso de TA'] || 0);
-    totals['Recursos Pedagógicos'] += Number(item['Recursos Pedagogicos'] || 0);
-    totals['Open Day'] += Number(item['Open Day'] || 0);
-    customColumns.forEach((column) => {
-      totals[column] = (totals[column] || 0) + Number(item[column] || 0);
-    });
+    const tipo = item.Tipo || 'Não informado';
+    totals[tipo] = (totals[tipo] || 0) + sumQuantities(item, customColumns);
   });
 
   const ctx = document.getElementById('tipoChart');
@@ -70,7 +54,7 @@ function renderTipoChart(data, customColumns) {
       labels: Object.keys(totals),
       datasets: [
         {
-          label: 'Número de Capacitações e Recursos',
+          label: 'Número de Assessorias',
           data: Object.values(totals),
           backgroundColor: '#00a0df',
           borderRadius: 8,
@@ -102,7 +86,7 @@ function renderRegiaoChart(data, customColumns) {
       labels: Object.keys(totals),
       datasets: [
         {
-          label: 'Número de Capacitações e Recursos',
+          label: 'Número de Assessorias',
           data: Object.values(totals),
           backgroundColor: '#f59e0b',
           borderRadius: 8,
@@ -126,32 +110,71 @@ function renderMap(data, customColumns) {
     attribution: '&copy; OpenStreetMap contributors',
   }).addTo(map);
 
-  let atendidos = 0;
+  const normalizeName = (value) =>
+    (value || '')
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+
+  const totalsByMunicipio = {};
   data.forEach((item) => {
+    const municipio = (item.Municipio || '').trim();
+    if (!municipio) return;
     const total = sumQuantities(item, customColumns);
-    const coords = MUNICIPIO_COORDS[item.Municipio];
-    if (coords && total > 0) {
-      atendidos += 1;
-      const popup = `
-        <strong>${item.Municipio}</strong><br/>
-        Instituição: ${item['Nome Inst.']}<br/>
-        Tipo: ${item.Tipo}<br/>
-        Endereço: ${item.Endereco}<br/>
-        Telefone: ${item.Telefone}<br/>
-        E-mail: ${item['E-mail']}<br/>
-        Total de Capacitações e Recursos: ${total}
-      `;
-      L.circleMarker(coords, {
-        radius: 10,
-        color: '#005cb9',
-        fillColor: '#00a0df',
-        fillOpacity: 0.8,
-      })
-        .addTo(map)
-        .bindPopup(popup);
+    const key = normalizeName(municipio);
+    if (!totalsByMunicipio[key]) {
+      totalsByMunicipio[key] = { total: 0, entries: [], displayName: municipio };
     }
+    totalsByMunicipio[key].total += total;
+    totalsByMunicipio[key].entries.push(item);
   });
 
-  const badge = document.getElementById('mapaBadge');
-  badge.textContent = atendidos > 0 ? `${atendidos} municípios com atendimentos` : 'Sem registros preenchidos';
+  fetch('sc_municipios.geojson')
+    .then((response) => response.json())
+    .then((geojson) => {
+      let atendidos = 0;
+
+      L.geoJSON(geojson, {
+        style: (feature) => {
+          const municipio = feature.properties.name;
+          const info = totalsByMunicipio[normalizeName(municipio)];
+          if (info && info.total > 0) {
+            atendidos += 1;
+            return {
+              fillColor: '#16a34a',
+              color: '#0f5132',
+              weight: 1,
+              fillOpacity: 0.6,
+            };
+          }
+          return {
+            fillColor: '#e5e7eb',
+            color: '#cbd5e1',
+            weight: 1,
+            fillOpacity: 0.4,
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const municipio = feature.properties.name;
+          const info = totalsByMunicipio[normalizeName(municipio)];
+          if (info && info.total > 0) {
+            const inst = info.entries[0];
+            const municipioTitulo = inst.Municipio || info.displayName || municipio;
+            const popup = `
+              <strong>${municipioTitulo}</strong><br/>
+              Instituição: ${inst['Nome Inst.'] || '---'}<br/>
+              Tipo de assessoria: ${inst.Tipo || '---'}<br/>
+              Endereço: ${inst.Endereco || '---'}<br/>
+              Telefone: ${inst.Telefone || '---'}<br/>
+              E-mail: ${inst['E-mail'] || '---'}<br/>
+              Número de Assessorias: ${info.total}
+            `;
+            layer.bindPopup(popup);
+          }
+        },
+      }).addTo(map);
+
+      const badge = document.getElementById('mapaBadge');
+      badge.textContent = atendidos > 0 ? `${atendidos} municípios com assessorias` : 'Sem registros preenchidos';
+    });
 }

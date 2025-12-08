@@ -1,15 +1,7 @@
 const STORAGE_KEY = 'certa-institutions';
 const CUSTOM_COLUMNS_KEY = 'certa-custom-columns';
-const DEFAULT_TYPES = ['Todos', 'Oficinas', 'Recursos de TA', 'Recursos Pedagógicos', 'Open Day'];
-const QUANTITY_FIELDS = ['Qt Oficinas', 'Qt Recurso de TA', 'Recursos Pedagogicos', 'Open Day'];
-
-const MUNICIPIO_COORDS = {
-  'Florianópolis': [-27.5954, -48.5480],
-  'Joinville': [-26.3044, -48.8487],
-  'Chapecó': [-27.1004, -52.6152],
-  'Blumenau': [-26.9155, -49.0709],
-  'Criciúma': [-28.6775, -49.3697],
-};
+const DEFAULT_TYPES = ['Online', 'Presencial'];
+const QUANTITY_FIELDS = ['Qt Profissionais', 'Qt Estudantes Contemplados'];
 
 async function fetchCsvData() {
   const response = await fetch('data/instituicoes.csv');
@@ -31,12 +23,9 @@ function parseCsv(text) {
 
 async function loadInstitutions() {
   const persisted = localStorage.getItem(STORAGE_KEY);
-  if (persisted) {
-    return JSON.parse(persisted);
-  }
-  const initial = await fetchCsvData();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(initial));
-  return initial;
+  const baseData = persisted ? JSON.parse(persisted) : await fetchCsvData();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(baseData));
+  return baseData;
 }
 
 function saveInstitutions(data) {
@@ -51,6 +40,19 @@ function loadCustomColumns() {
   const defaults = [];
   localStorage.setItem(CUSTOM_COLUMNS_KEY, JSON.stringify(defaults));
   return defaults;
+}
+
+function applyQuantityDefaults(data, customColumns = []) {
+  return data.map((entry) => {
+    const normalized = { ...entry };
+    QUANTITY_FIELDS.forEach((field) => {
+      normalized[field] = Number(entry[field] || 0);
+    });
+    customColumns.forEach((field) => {
+      normalized[field] = Number(entry[field] || 0);
+    });
+    return normalized;
+  });
 }
 
 function saveCustomColumns(columns) {
