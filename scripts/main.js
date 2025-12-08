@@ -17,9 +17,6 @@
   }
 })();
 
-/**
- * Cartões de resumo no topo do painel.
- */
 function renderSummaryCards(data, customColumns) {
   const container = document.getElementById('summary-cards');
   if (!container) return;
@@ -48,8 +45,8 @@ function renderSummaryCards(data, customColumns) {
 }
 
 /**
- * Gráfico por tipo de assessoria.
- * Título desejado: "Número de Assessorias".
+ * Gráfico por tipo.
+ * Título visual: "Número de Assessorias".
  */
 function renderTipoChart(data, customColumns) {
   const canvas = document.getElementById('tipoChart');
@@ -82,9 +79,6 @@ function renderTipoChart(data, customColumns) {
       plugins: {
         legend: { display: false },
         tooltip: { enabled: true },
-        title: {
-          display: false,
-        },
       },
       scales: {
         x: {
@@ -100,7 +94,7 @@ function renderTipoChart(data, customColumns) {
 
 /**
  * Gráfico por região.
- * Título desejado: "Assessorias por Região".
+ * Título visual: "Assessorias por Região".
  */
 function renderRegiaoChart(data, customColumns) {
   const canvas = document.getElementById('regiaoChart');
@@ -133,9 +127,6 @@ function renderRegiaoChart(data, customColumns) {
       plugins: {
         legend: { display: false },
         tooltip: { enabled: true },
-        title: {
-          display: false,
-        },
       },
       scales: {
         x: {
@@ -150,13 +141,13 @@ function renderRegiaoChart(data, customColumns) {
 }
 
 /**
- * Mapa Leaflet com os municípios atendidos.
+ * Mapa Leaflet com municípios atendidos.
+ * Cinza sem quantidade; verde com quantidade.
  */
 async function renderMap(institutions, customColumns) {
   const mapContainer = document.getElementById('map');
   if (!mapContainer) return;
 
-  // Centraliza em Santa Catarina
   const map = L.map('map').setView([-27.3, -50.5], 7);
 
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -175,7 +166,6 @@ async function renderMap(institutions, customColumns) {
     }
     const geojson = await response.json();
 
-    // Índice de instituições por município
     const byMunicipio = new Map();
     institutions.forEach((inst) => {
       const key = (inst.Municipio || '').trim().toLowerCase();
@@ -187,10 +177,8 @@ async function renderMap(institutions, customColumns) {
     let atendidos = 0;
 
     function getColor(total) {
-      if (total === 0) return '#e5e7eb'; // cinza claro
-      if (total <= 5) return '#bfdbfe'; // azul claro
-      if (total <= 15) return '#60a5fa'; // azul médio
-      return '#1d4ed8'; // azul forte
+      if (total === 0) return '#d1d5db'; // cinza
+      return '#16a34a'; // verde
     }
 
     L.geoJSON(geojson, {
@@ -201,7 +189,7 @@ async function renderMap(institutions, customColumns) {
         return {
           color: '#ffffff',
           weight: 1,
-          fillOpacity: total > 0 ? 0.8 : 0.3,
+          fillOpacity: total > 0 ? 0.8 : 0.5,
           fillColor: getColor(total),
         };
       },
