@@ -5,7 +5,7 @@ let customColumns = [];
 
 (async function initAdmin() {
   customColumns = loadCustomColumns();
-  institutions = await loadInstitutions();
+  institutions = applyQuantityDefaults(await loadInstitutions(), customColumns);
   handleAuth();
   populateNewTypeSelect();
   renderTable();
@@ -44,7 +44,7 @@ function bindEvents() {
       return;
     }
     customColumns.push(label);
-    institutions = institutions.map((item) => ({ ...item, [label]: 0 }));
+    institutions = applyQuantityDefaults(institutions, customColumns);
     saveCustomColumns(customColumns);
     saveInstitutions(institutions);
     renderTable();
