@@ -1,7 +1,17 @@
 // Lógica do Painel Admin (admin.html) · Saeex-Naee
 
-const credentials = { username: 'admin', password: 'certa2024' }; // mantém login/senha originais
+const credentials = { username: 'admin', password: 'certa2024' }; // ajuste se quiser
 const sessionKey = 'saeex-naee-session-auth';
+
+const TYPE_OPTIONS = ['Online', 'Presencial'];
+const REGION_OPTIONS = [
+  'Oeste',
+  'Vale do Itajaí',
+  'Norte',
+  'Serra',
+  'Grande Florianópolis',
+  'Sul',
+];
 
 let institutions = [];
 let customColumns = [];
@@ -13,13 +23,14 @@ let customColumns = [];
 
   handleAuth();
   populateNewTypeSelect();
+  populateNewRegionSelect();
   renderCustomColumns();
   renderTable();
   bindEvents();
 })();
 
 /**
- * Garante overlay de login e sessão simples.
+ * Login simples com overlay.
  */
 function handleAuth() {
   const overlay = document.getElementById('login-overlay');
@@ -57,29 +68,31 @@ function handleAuth() {
 }
 
 /**
- * Preenche o select de tipo da nova instituição.
+ * Select de tipo (Online / Presencial) no formulário de nova instituição.
  */
 function populateNewTypeSelect() {
   const select = document.getElementById('new-type-select');
   if (!select) return;
 
-  const typesSet = new Set(DEFAULT_TYPES);
-  institutions.forEach((inst) => {
-    const t = (inst.Tipo || '').trim();
-    if (t) typesSet.add(t);
-  });
-
-  select.innerHTML = '';
-  Array.from(typesSet).forEach((type) => {
-    const option = document.createElement('option');
-    option.value = type;
-    option.textContent = type;
-    select.appendChild(option);
-  });
+  select.innerHTML = TYPE_OPTIONS.map(
+    (t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`,
+  ).join('');
 }
 
 /**
- * Renderiza lista de colunas dinâmicas (apenas nomes).
+ * Select de região no formulário de nova instituição.
+ */
+function populateNewRegionSelect() {
+  const select = document.getElementById('new-regiao');
+  if (!select) return;
+
+  select.innerHTML = REGION_OPTIONS.map(
+    (r) => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`,
+  ).join('');
+}
+
+/**
+ * Render de colunas personalizadas.
  */
 function renderCustomColumns() {
   const container = document.getElementById('custom-columns-list');
@@ -100,7 +113,41 @@ function renderCustomColumns() {
 }
 
 /**
- * Renderiza tabela principal de instituições.
+ * Escape básico de HTML.
+ */
+function escapeHtml(str) {
+  return String(str ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+/**
+ * Monta um <select> para Tipo ou Região na tabela.
+ */
+function buildSelect(fieldName, index, currentValue, options) {
+  const opts = [...options];
+  if (currentValue && !opts.includes(currentValue)) {
+    opts.unshift(currentValue);
+  }
+
+  const optionsHtml = opts
+    .map(
+      (val) =>
+        `<option value="${escapeHtml(val)}"${
+          val === currentValue ? ' selected' : ''
+        }>${escapeHtml(val)}</option>`,
+    )
+    .join('');
+
+  return `<select data-index="${index}" data-field="${fieldName}">${optionsHtml}</select>`;
+}
+
+/**
+ * Renderiza tabela principal.
+ * Editáveis: Município, Nome da Instituição, Endereço, Telefone, E-mail, Tipo, Região.
  */
 function renderTable() {
   const tbody = document.getElementById('institutions-body');
@@ -109,35 +156,116 @@ function renderTable() {
   tbody.innerHTML = '';
 
   institutions.forEach((inst, index) => {
-    const tr = document.createElement('tr');
+    const municipio = inst.Municipio || '';
+    const regiao = inst.Regiao || '';
+    const nomeInst = inst['Nome Inst.'] || '';
+    const tipo = inst.Tipo || '';
+    const endereco = inst.Endereco || '';
+    const telefone = inst.Telefone || '';
+    const email = inst['E-mail'] || '';
 
-    tr.innerHTML = `
-      <td>${inst.Municipio || ''}</td>
-      <td>${inst.Regiao || ''}</td>
-      <td>${inst['Nome Inst.'] || ''}</td>
-      <td>${inst.Tipo || ''}</td>
-      <td>${inst.Endereco || ''}</td>
-      <td>${inst.Telefone || ''}</td>
-      <td>${inst['E-mail'] || ''}</td>
-      <td><input type="number" min="0" data-index="${index}" data-field="Qt Profissionais" value="${Number(inst['Qt Profissionais'] || 0)}" /></td>
-      <td><input type="number" min="0" data-index="${index}" data-field="Qt Estudantes Contemplados" value="${Number(inst['Qt Estudantes Contemplados'] || 0)}" /></td>
+    const tipoSelectHtml = buildSelect('Tipo', index, tipo, TYPE_OPTIONS);
+    const regiaoSelectHtml = buildSelect('Regiao', index, regiao, REGION_OPTIONS);
+
+    const rowHtml = `
+      <td>
+        <input
+          type="text"
+          data-index="${index}"
+          data-field="Municipio"
+          value="${escapeHtml(municipio)}"
+        />
+      </td>
+      <td>
+        ${regiaoSelectHtml}
+      </td>
+      <td>
+        <input
+          type="text"
+          data-index="${index}"
+          data-field="Nome Inst."
+          value="${escapeHtml(nomeInst)}"
+        />
+      </td>
+      <td>
+        ${tipoSelectHtml}
+      </td>
+      <td>
+        <input
+          type="text"
+          data-index="${index}"
+          data-field="Endereco"
+          value="${escapeHtml(endereco)}"
+        />
+      </td>
+      <td>
+        <input
+          type="text"
+          data-index="${index}"
+          data-field="Telefone"
+          value="${escapeHtml(telefone)}"
+        />
+      </td>
+      <td>
+        <input
+          type="email"
+          data-index="${index}"
+          data-field="E-mail"
+          value="${escapeHtml(email)}"
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          data-index="${index}"
+          data-field="Qt Profissionais"
+          value="${Number(inst['Qt Profissionais'] || 0)}"
+        />
+      </td>
+      <td>
+        <input
+          type="number"
+          min="0"
+          data-index="${index}"
+          data-field="Qt Estudantes Contemplados"
+          value="${Number(inst['Qt Estudantes Contemplados'] || 0)}"
+        />
+      </td>
       ${customColumns
         .map(
-          (column) =>
-            `<td><input type="number" min="0" data-index="${index}" data-field="${column}" value="${Number(
-              inst[column] || 0,
-            )}" /></td>`,
+          (column) => `
+          <td>
+            <input
+              type="number"
+              min="0"
+              data-index="${index}"
+              data-field="${escapeHtml(column)}"
+              value="${Number(inst[column] || 0)}"
+            />
+          </td>`,
         )
         .join('')}
-      <td><button type="button" class="danger" data-action="delete" data-index="${index}">Excluir</button></td>
+      <td>
+        <button
+          type="button"
+          class="danger"
+          data-action="delete"
+          data-index="${index}"
+        >
+          Excluir
+        </button>
+      </td>
     `;
 
+    const tr = document.createElement('tr');
+    tr.innerHTML = rowHtml;
     tbody.appendChild(tr);
   });
 }
 
 /**
- * Eventos principais do Admin.
+ * Eventos gerais.
  */
 function bindEvents() {
   const logoutButton = document.getElementById('logout-button');
@@ -158,7 +286,6 @@ function bindEvents() {
       if (!customColumns.includes(name)) {
         customColumns.push(name);
         saveCustomColumns(customColumns);
-        // também garante a coluna nas instituições existentes
         institutions = applyQuantityDefaults(institutions, customColumns);
         saveInstitutions(institutions);
         renderCustomColumns();
@@ -191,7 +318,6 @@ function bindEvents() {
         'E-mail': email?.value.trim() || '',
       };
 
-      // Garante as colunas numéricas padrão e customizadas
       institutions.push(newItem);
       institutions = applyQuantityDefaults(institutions, customColumns);
       saveInstitutions(institutions);
@@ -199,13 +325,15 @@ function bindEvents() {
 
       newInstForm.reset();
       populateNewTypeSelect();
+      populateNewRegionSelect();
     });
   }
 
-  // Atualização de campos numéricos + excluir linha
   const tbody = document.getElementById('institutions-body');
   if (tbody) {
     tbody.addEventListener('input', handleFieldUpdate);
+    tbody.addEventListener('change', handleFieldUpdate);
+
     tbody.addEventListener('click', (event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement)) return;
@@ -223,11 +351,16 @@ function bindEvents() {
 }
 
 /**
- * Atualiza o objeto quando o usuário altera um input numérico/texto.
+ * Atualiza o objeto de dados ao editar inputs/selects.
  */
 function handleFieldUpdate(event) {
   const element = event.target;
-  if (!(element instanceof HTMLInputElement)) return;
+  if (
+    !(element instanceof HTMLInputElement) &&
+    !(element instanceof HTMLSelectElement)
+  ) {
+    return;
+  }
 
   const idx = Number(element.getAttribute('data-index'));
   const field = element.getAttribute('data-field');
@@ -236,8 +369,11 @@ function handleFieldUpdate(event) {
     return;
   }
 
-  institutions[idx][field] =
-    element.type === 'number' ? Number(element.value || 0) : element.value;
+  if (element.type === 'number') {
+    institutions[idx][field] = Number(element.value || 0);
+  } else {
+    institutions[idx][field] = element.value;
+  }
 
   saveInstitutions(institutions);
 }
