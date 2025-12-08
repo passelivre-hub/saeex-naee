@@ -16,7 +16,7 @@ function renderSummaryCards(data, customColumns) {
 
   const cards = [
     {
-      title: 'Número de assessorias registradas',
+      title: 'Número de Assessorias registradas',
       value: totalAssessorias,
       badge: `${totalInstituicoes} instituições ativas`,
     },
@@ -24,11 +24,6 @@ function renderSummaryCards(data, customColumns) {
       title: 'Regiões atendidas',
       value: regioes.size,
       badge: 'Abrangência estadual',
-    },
-    {
-      title: 'Modalidades cadastradas',
-      value: new Set(data.map((i) => i.Tipo)).size,
-      badge: 'Distribuição entre online e presencial',
     },
   ];
 
@@ -59,7 +54,7 @@ function renderTipoChart(data, customColumns) {
       labels: Object.keys(totals),
       datasets: [
         {
-          label: 'Número de assessorias',
+          label: 'Número de Assessorias',
           data: Object.values(totals),
           backgroundColor: '#00a0df',
           borderRadius: 8,
@@ -91,7 +86,7 @@ function renderRegiaoChart(data, customColumns) {
       labels: Object.keys(totals),
       datasets: [
         {
-          label: 'Número de assessorias',
+          label: 'Número de Assessorias',
           data: Object.values(totals),
           backgroundColor: '#f59e0b',
           borderRadius: 8,
@@ -146,8 +141,8 @@ function renderMap(data, customColumns) {
           if (info && info.total > 0) {
             atendidos += 1;
             return {
-              fillColor: '#00a0df',
-              color: '#005cb9',
+              fillColor: '#16a34a',
+              color: '#0f5132',
               weight: 1,
               fillOpacity: 0.6,
             };
@@ -168,11 +163,11 @@ function renderMap(data, customColumns) {
             const popup = `
               <strong>${municipioTitulo}</strong><br/>
               Instituição: ${inst['Nome Inst.'] || '---'}<br/>
-              Modalidade: ${inst.Tipo || '---'}<br/>
+              Tipo de assessoria: ${inst.Tipo || '---'}<br/>
               Endereço: ${inst.Endereco || '---'}<br/>
               Telefone: ${inst.Telefone || '---'}<br/>
               E-mail: ${inst['E-mail'] || '---'}<br/>
-              Número de assessorias: ${info.total}
+              Número de Assessorias: ${info.total}
             `;
             layer.bindPopup(popup);
           }
