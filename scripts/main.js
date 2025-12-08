@@ -1,180 +1,232 @@
-(async function initDashboard() {
-  const customColumns = loadCustomColumns();
-  const institutions = applyQuantityDefaults(await loadInstitutions(), customColumns);
+// Lógica do Painel Estatístico (index.html) · Saeex-Naee
 
-  renderSummaryCards(institutions, customColumns);
-  renderTipoChart(institutions, customColumns);
-  renderRegiaoChart(institutions, customColumns);
-  renderMap(institutions, customColumns);
+(async function initDashboard() {
+  try {
+    const customColumns = loadCustomColumns();
+    const institutionsRaw = await loadInstitutions();
+    const institutions = applyQuantityDefaults(institutionsRaw, customColumns);
+
+    renderSummaryCards(institutions, customColumns);
+    renderTipoChart(institutions, customColumns);
+    renderRegiaoChart(institutions, customColumns);
+    renderMap(institutions, customColumns);
+  } catch (error) {
+    console.error('Erro ao inicializar o painel:', error);
+    const badge = document.getElementById('mapaBadge');
+    if (badge) badge.textContent = 'Erro ao carregar dados';
+  }
 })();
 
+/**
+ * Cartões de resumo no topo do painel.
+ */
 function renderSummaryCards(data, customColumns) {
   const container = document.getElementById('summary-cards');
-  const totalAssessorias = data.reduce((total, item) => total + sumQuantities(item, customColumns), 0);
+  if (!container) return;
+
+  const totalAssessorias = data.reduce(
+    (total, item) => total + sumQuantities(item, customColumns),
+    0,
+  );
   const totalInstituicoes = data.length;
   const regioes = new Set(data.map((i) => i.Regiao));
 
-  const cards = [
-    {
-      title: 'Número de Assessorias registradas',
-      value: totalAssessorias,
-      badge: `${totalInstituicoes} instituições ativas`,
-    },
-    {
-      title: 'Regiões atendidas',
-      value: regioes.size,
-      badge: 'Abrangência estadual',
-    },
-  ];
-
-  container.innerHTML = cards
-    .map(
-      (card) => `
-      <div class="card">
-        <h3>${card.title}</h3>
-        <p class="stat-value">${card.value}</p>
-        <span class="badge">${card.badge}</span>
-      </div>
-    `
-    )
-    .join('');
+  container.innerHTML = `
+    <div class="card">
+      <div class="card-label">Total de Assessorias</div>
+      <div class="card-value">${totalAssessorias}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Instituições cadastradas</div>
+      <div class="card-value">${totalInstituicoes}</div>
+    </div>
+    <div class="card">
+      <div class="card-label">Regiões atendidas</div>
+      <div class="card-value">${regioes.size}</div>
+    </div>
+  `;
 }
 
+/**
+ * Gráfico por tipo de assessoria.
+ * Título desejado: "Número de Assessorias".
+ */
 function renderTipoChart(data, customColumns) {
-  const totals = {};
+  const canvas = document.getElementById('tipoChart');
+  if (!canvas) return;
+
+  const byType = new Map();
+
   data.forEach((item) => {
-    const tipo = item.Tipo || 'Não informado';
-    totals[tipo] = (totals[tipo] || 0) + sumQuantities(item, customColumns);
+    const key = item.Tipo || 'Sem informação';
+    const value = sumQuantities(item, customColumns);
+    byType.set(key, (byType.get(key) || 0) + value);
   });
 
-  const ctx = document.getElementById('tipoChart');
-  new Chart(ctx, {
+  const labels = Array.from(byType.keys());
+  const values = Array.from(byType.values());
+
+  new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: Object.keys(totals),
+      labels,
       datasets: [
         {
           label: 'Número de Assessorias',
-          data: Object.values(totals),
-          backgroundColor: '#00a0df',
-          borderRadius: 8,
+          data: values,
         },
       ],
     },
     options: {
+      responsive: true,
       plugins: {
         legend: { display: false },
+        tooltip: { enabled: true },
+        title: {
+          display: false,
+        },
       },
       scales: {
-        y: { beginAtZero: true },
+        x: {
+          ticks: { autoSkip: false },
+        },
+        y: {
+          beginAtZero: true,
+        },
       },
     },
   });
 }
 
+/**
+ * Gráfico por região.
+ * Título desejado: "Assessorias por Região".
+ */
 function renderRegiaoChart(data, customColumns) {
-  const totals = {};
+  const canvas = document.getElementById('regiaoChart');
+  if (!canvas) return;
+
+  const byRegion = new Map();
+
   data.forEach((item) => {
-    const regiao = item.Regiao || 'Não informado';
-    totals[regiao] = (totals[regiao] || 0) + sumQuantities(item, customColumns);
+    const key = item.Regiao || 'Sem informação';
+    const value = sumQuantities(item, customColumns);
+    byRegion.set(key, (byRegion.get(key) || 0) + value);
   });
 
-  const ctx = document.getElementById('regiaoChart');
-  new Chart(ctx, {
+  const labels = Array.from(byRegion.keys());
+  const values = Array.from(byRegion.values());
+
+  new Chart(canvas.getContext('2d'), {
     type: 'bar',
     data: {
-      labels: Object.keys(totals),
+      labels,
       datasets: [
         {
-          label: 'Número de Assessorias',
-          data: Object.values(totals),
-          backgroundColor: '#f59e0b',
-          borderRadius: 8,
+          label: 'Assessorias por Região',
+          data: values,
         },
       ],
     },
     options: {
+      responsive: true,
       plugins: {
         legend: { display: false },
+        tooltip: { enabled: true },
+        title: {
+          display: false,
+        },
       },
       scales: {
-        y: { beginAtZero: true },
+        x: {
+          ticks: { autoSkip: false },
+        },
+        y: {
+          beginAtZero: true,
+        },
       },
     },
   });
 }
 
-function renderMap(data, customColumns) {
-  const map = L.map('map').setView([-27.2423, -50.2189], 6.7);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: '&copy; OpenStreetMap contributors',
+/**
+ * Mapa Leaflet com os municípios atendidos.
+ */
+async function renderMap(institutions, customColumns) {
+  const mapContainer = document.getElementById('map');
+  if (!mapContainer) return;
+
+  // Centraliza em Santa Catarina
+  const map = L.map('map').setView([-27.3, -50.5], 7);
+
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18,
+    attribution:
+      '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   }).addTo(map);
 
-  const normalizeName = (value) =>
-    (value || '')
-      .normalize('NFD')
-      .replace(/\p{Diacritic}/gu, '')
-      .toLowerCase();
+  const badge = document.getElementById('mapaBadge');
+  if (badge) badge.textContent = 'Carregando...';
 
-  const totalsByMunicipio = {};
-  data.forEach((item) => {
-    const municipio = (item.Municipio || '').trim();
-    if (!municipio) return;
-    const total = sumQuantities(item, customColumns);
-    const key = normalizeName(municipio);
-    if (!totalsByMunicipio[key]) {
-      totalsByMunicipio[key] = { total: 0, entries: [], displayName: municipio };
+  try {
+    const response = await fetch('sc_municipios.geojson');
+    if (!response.ok) {
+      throw new Error('Erro ao carregar sc_municipios.geojson');
     }
-    totalsByMunicipio[key].total += total;
-    totalsByMunicipio[key].entries.push(item);
-  });
+    const geojson = await response.json();
 
-  fetch('sc_municipios.geojson')
-    .then((response) => response.json())
-    .then((geojson) => {
-      let atendidos = 0;
-
-      L.geoJSON(geojson, {
-        style: (feature) => {
-          const municipio = feature.properties.name;
-          const info = totalsByMunicipio[normalizeName(municipio)];
-          if (info && info.total > 0) {
-            atendidos += 1;
-            return {
-              fillColor: '#16a34a',
-              color: '#0f5132',
-              weight: 1,
-              fillOpacity: 0.6,
-            };
-          }
-          return {
-            fillColor: '#e5e7eb',
-            color: '#cbd5e1',
-            weight: 1,
-            fillOpacity: 0.4,
-          };
-        },
-        onEachFeature: (feature, layer) => {
-          const municipio = feature.properties.name;
-          const info = totalsByMunicipio[normalizeName(municipio)];
-          if (info && info.total > 0) {
-            const inst = info.entries[0];
-            const municipioTitulo = inst.Municipio || info.displayName || municipio;
-            const popup = `
-              <strong>${municipioTitulo}</strong><br/>
-              Instituição: ${inst['Nome Inst.'] || '---'}<br/>
-              Tipo de assessoria: ${inst.Tipo || '---'}<br/>
-              Endereço: ${inst.Endereco || '---'}<br/>
-              Telefone: ${inst.Telefone || '---'}<br/>
-              E-mail: ${inst['E-mail'] || '---'}<br/>
-              Número de Assessorias: ${info.total}
-            `;
-            layer.bindPopup(popup);
-          }
-        },
-      }).addTo(map);
-
-      const badge = document.getElementById('mapaBadge');
-      badge.textContent = atendidos > 0 ? `${atendidos} municípios com assessorias` : 'Sem registros preenchidos';
+    // Índice de instituições por município
+    const byMunicipio = new Map();
+    institutions.forEach((inst) => {
+      const key = (inst.Municipio || '').trim().toLowerCase();
+      if (!key) return;
+      const value = sumQuantities(inst, customColumns);
+      byMunicipio.set(key, (byMunicipio.get(key) || 0) + value);
     });
+
+    let atendidos = 0;
+
+    function getColor(total) {
+      if (total === 0) return '#e5e7eb'; // cinza claro
+      if (total <= 5) return '#bfdbfe'; // azul claro
+      if (total <= 15) return '#60a5fa'; // azul médio
+      return '#1d4ed8'; // azul forte
+    }
+
+    L.geoJSON(geojson, {
+      style: (feature) => {
+        const nome = (feature.properties.name || '').trim().toLowerCase();
+        const total = byMunicipio.get(nome) || 0;
+        if (total > 0) atendidos += 1;
+        return {
+          color: '#ffffff',
+          weight: 1,
+          fillOpacity: total > 0 ? 0.8 : 0.3,
+          fillColor: getColor(total),
+        };
+      },
+      onEachFeature: (feature, layer) => {
+        const nome = feature.properties.name;
+        const key = (nome || '').trim().toLowerCase();
+        const total = byMunicipio.get(key) || 0;
+        if (total > 0) {
+          layer.bindPopup(
+            `<strong>${nome}</strong><br/>Número de Assessorias: ${total}`,
+          );
+        } else {
+          layer.bindPopup(`<strong>${nome}</strong><br/>Sem registros preenchidos`);
+        }
+      },
+    }).addTo(map);
+
+    if (badge) {
+      badge.textContent =
+        atendidos > 0
+          ? `${atendidos} municípios com assessorias`
+          : 'Sem registros preenchidos';
+    }
+  } catch (error) {
+    console.error('Erro ao renderizar mapa:', error);
+    if (badge) badge.textContent = 'Erro ao carregar mapa';
+  }
 }
