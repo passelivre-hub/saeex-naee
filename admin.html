@@ -1,100 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Painel Admin - CERTA</title>
-  <link rel="stylesheet" href="styles/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Admin · FCEE · Saeex-Naee</title>
+  <link rel="stylesheet" href="styles/style.css" />
 </head>
 <body>
-  <div id="login-overlay" class="login-overlay" style="display:none;">
+  <!-- Overlay de login -->
+  <div id="login-overlay" class="login-overlay" style="display: none">
     <div class="login-box">
       <h2>Acesso restrito</h2>
-      <p>Use as credenciais padrão para acessar o Painel Admin.</p>
+      <p>Use o usuário e senha padrão para acessar o Painel Admin.</p>
+
       <div class="form-grid">
-        <div>
+        <div class="form-field">
           <label for="username">Usuário</label>
-          <input id="username" type="text" placeholder="admin" />
+          <input id="username" type="text" autocomplete="username" />
         </div>
-        <div>
+        <div class="form-field">
           <label for="password">Senha</label>
-          <input id="password" type="password" placeholder="******" />
+          <input id="password" type="password" autocomplete="current-password" />
         </div>
       </div>
-      <div class="action-row" style="margin-top: 1rem;">
-        <button id="login-btn">Entrar</button>
-        <span id="login-feedback" style="color: var(--danger);"></span>
+
+      <div id="login-error" class="login-error"></div>
+
+      <div class="login-actions">
+        <button id="login-button" class="button primary" type="button">
+          Entrar
+        </button>
       </div>
     </div>
   </div>
 
   <header>
     <div class="titles">
-      <h1>Painel Admin CERTA</h1>
-      <h2>Gestão de Assessorias</h2>
+      <h1>Painel Admin</h1>
+      <h2>Fundação Catarinense de Educação Especial · Saeex-Naee</h2>
     </div>
     <div class="logos">
-      <div class="logo-placeholder">Logo FCEE</div>
-      <div class="logo-placeholder">Logo CERTA</div>
+      <!-- Use as MESMAS logos do painel público -->
+      <img src="logos/logo-fcee.png" alt="Logomarca FCEE" />
+      <img src="logos/logo-saeex-naee.png" alt="Logomarca Saeex-Naee" />
     </div>
   </header>
 
   <main>
-    <div class="notice">
-      Mantenha as instituições cadastradas com os dados de endereço e contato e utilize as colunas de quantidade para registrar assessorias realizadas. É possível criar novas colunas de quantidade conforme a necessidade.
-    </div>
-
-    <div class="section-title" style="margin-top: 1rem;">
-      <h2>Instituições CERTA</h2>
-      <div class="action-row">
-        <button id="add-column-btn" class="secondary">Adicionar coluna de quantidade</button>
-        <a class="button-link secondary" href="index.html">Ver Mapa</a>
-        <button id="logout-btn" class="secondary">Sair</button>
+    <div class="toolbar">
+      <div>
+        <span class="muted">Administração de instituições e quantidades de assessorias</span>
+      </div>
+      <div>
+        <a class="button" href="index.html">Ver Painel Público</a>
+        <button id="logout-button" class="button danger" type="button">Sair</button>
       </div>
     </div>
 
-    <div class="table-wrapper" style="margin-top: 1rem;">
-      <table id="institutions-table"></table>
-    </div>
+    <!-- Colunas de quantidade dinâmicas -->
+    <section style="margin-bottom: 1.5rem">
+      <div class="section-title">
+        <h2>Colunas de quantidade</h2>
+      </div>
 
-    <div class="card" style="margin-top: 1rem;">
-      <form id="new-institution-form">
-        <h3>Nova Instituição</h3>
-        <div class="form-grid" style="margin-top: 0.5rem;">
-          <div>
-            <label>Município</label>
-            <input name="Municipio" required />
-          </div>
-          <div>
-            <label>Região</label>
-            <input name="Regiao" required />
-          </div>
-          <div>
-            <label>Nome Inst.</label>
-            <input name="Nome Inst." required />
-          </div>
-          <div>
-            <label>Tipo (Online ou Presencial)</label>
-            <select name="Tipo" id="new-type-select"></select>
-          </div>
-          <div>
-            <label>Endereço</label>
-            <input name="Endereco" required />
-          </div>
-          <div>
-            <label>Telefone</label>
-            <input name="Telefone" />
-          </div>
-          <div>
-            <label>E-mail</label>
-            <input name="E-mail" type="email" />
-          </div>
+      <form id="new-column-form" class="form-grid" style="margin-bottom: 0.75rem">
+        <div class="form-field">
+          <label for="new-column-name">Nome da nova coluna de quantidade</label>
+          <input
+            id="new-column-name"
+            type="text"
+            placeholder="Ex.: Qt Oficinas, Recursos de TA, Open Day..."
+          />
         </div>
-        <div class="action-row" style="margin-top: 0.75rem;">
-          <button type="submit">Salvar Nova Instituição</button>
+        <div class="action-row">
+          <button class="button primary" type="submit">Adicionar coluna</button>
         </div>
       </form>
-    </div>
+
+      <div id="custom-columns-list"></div>
+    </section>
+
+    <!-- Tabela principal -->
+    <section class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>Município</th>
+            <th>Região</th>
+            <th>Nome da Instituição</th>
+            <th>Tipo</th>
+            <th>Endereço</th>
+            <th>Telefone</th>
+            <th>E-mail</th>
+            <th>Qt Profissionais</th>
+            <th>Qt Estudantes Contemplados</th>
+            <!-- As colunas extras de quantidade serão inseridas via JS -->
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="institutions-body"></tbody>
+      </table>
+    </section>
+
+    <!-- Cadastro de nova instituição -->
+    <section style="margin-top: 1.5rem">
+      <div class="section-title">
+        <h2>Nova Instituição</h2>
+      </div>
+      <form id="new-institution-form" class="form-grid">
+        <div class="form-field">
+          <label for="new-municipio">Município</label>
+          <input id="new-municipio" type="text" required />
+        </div>
+        <div class="form-field">
+          <label for="new-regiao">Região</label>
+          <input id="new-regiao" type="text" required />
+        </div>
+        <div class="form-field">
+          <label for="new-nome-inst">Nome da Instituição</label>
+          <input id="new-nome-inst" type="text" required />
+        </div>
+        <div class="form-field">
+          <label for="new-type-select">Tipo</label>
+          <select id="new-type-select"></select>
+        </div>
+        <div class="form-field">
+          <label for="new-endereco">Endereço</label>
+          <input id="new-endereco" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="new-telefone">Telefone</label>
+          <input id="new-telefone" type="text" />
+        </div>
+        <div class="form-field">
+          <label for="new-email">E-mail</label>
+          <input id="new-email" type="email" />
+        </div>
+
+        <div class="action-row" style="margin-top: 0.25rem">
+          <button class="button primary" type="submit">Salvar Nova Instituição</button>
+        </div>
+      </form>
+    </section>
   </main>
 
   <script src="scripts/shared-data.js"></script>
