@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel Administrativo | SAEEX/NAEE - FCEE</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body class="light">
+    <header>
+      <a class="logo" href="index.html">
+        <img src="./assets/fcee-logo.svg" alt="Logo FCEE" />
+      </a>
+      <div class="header-title">
+        <h1>Painel Administrativo</h1>
+        <span>Atualize os dados que alimentam o painel público</span>
+      </div>
+      <a class="logo" href="index.html">
+        <img src="./assets/gov-sc-logo.svg" alt="Logo Governo de SC" />
+      </a>
+    </header>
+
+    <main>
+      <section id="admin-panel">
+        <div class="section-title">
+          <div>
+            <h2>Edição das CREs</h2>
+            <small>Os valores são armazenados localmente no seu navegador.</small>
+          </div>
+          <a class="ghost-button" href="index.html">Voltar ao painel</a>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>CRE</th>
+              <th>Público EE</th>
+              <th>Total de Escolas</th>
+              <th>Escolas com AEE</th>
+              <th>Estudantes no AEE</th>
+              <th>Participantes</th>
+              <th>Assessorias presenciais</th>
+              <th>Assessorias on-line</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="admin-body"></tbody>
+        </table>
+        <div id="footer-note">A coluna de CREs é fixa. Utilize o link indicado para validar o grupo de municípios de cada regional e mantenha a alternância dos tons de verde para CREs assessoradas.</div>
+      </section>
+    </main>
+
+    <script type="module" src="admin.js"></script>
+  </body>
+</html>

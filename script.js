@@ -1,74 +1,40 @@
 import { initialCreData } from './data/cre-data.js';
+import { computeDerived, formatNumber, loadData, percent } from './data/shared.js';
+
+const GRID_COLS = 8;
+const GRID_ROWS = 7;
 
 const state = {
-  creData: loadStoredData() ?? initialCreData,
+  creData: loadData(initialCreData),
   activeCre: null,
 };
 
-const palette = {
-  toneA: '#006934',
-  toneB: '#00a859',
-  muted: '#8c9aa3',
-};
-
-function loadStoredData() {
-  if (typeof localStorage === 'undefined') return null;
-  const saved = localStorage.getItem('naee-cre-data');
-  if (!saved) return null;
-  try {
-    return JSON.parse(saved);
-  } catch (err) {
-    return null;
-  }
-}
-
-function persistData() {
-  if (typeof localStorage === 'undefined') return;
-  localStorage.setItem('naee-cre-data', JSON.stringify(state.creData));
-}
-
-function formatNumber(value) {
-  return value.toLocaleString('pt-BR');
-}
-
-function percent(part, total) {
-  if (!total) return 0;
-  return Math.max(0, Math.min(100, Math.round((part / total) * 100)));
-}
-
-function computeDerived(cre) {
-  const studentsOutside = Math.max(0, cre.publicoEE - cre.studentsInAEE);
-  const schoolsWithoutAEE = Math.max(0, cre.totalSchools - cre.schoolsWithAEE);
-  return {
-    studentsOutside,
-    outsidePct: percent(studentsOutside, cre.publicoEE),
-    schoolsWithoutAEE,
-    schoolsWithoutPct: percent(schoolsWithoutAEE, cre.totalSchools),
-  };
+function mapCoordinates(cre) {
+  const col = cre.gridPosition?.column ?? 1;
+  const row = cre.gridPosition?.row ?? 1;
+  const left = ((col - 1) / (GRID_COLS - 1)) * 100;
+  const top = ((row - 1) / (GRID_ROWS - 1)) * 100;
+  return { left, top };
 }
 
 function renderMap() {
-  const grid = document.querySelector('#map-grid');
-  grid.innerHTML = '';
+  const board = document.querySelector('#map-markers');
+  board.innerHTML = '';
   state.creData.forEach((cre, idx) => {
-    const tile = document.createElement('div');
-    tile.className = `cre-tile ${cre.hasAssessoria ? (idx % 2 === 0 ? 'tone-a' : 'tone-b') : 'tone-muted'} ${cre.hasAssessoria ? '' : 'badge'}`;
-    tile.style.gridRow = cre.gridPosition?.row ?? 'auto';
-    tile.style.gridColumn = cre.gridPosition?.column ?? 'auto';
+    const marker = document.createElement('button');
+    const { left, top } = mapCoordinates(cre);
+    marker.className = `map-marker ${cre.hasAssessoria ? (idx % 2 === 0 ? 'tone-a' : 'tone-b') : 'tone-muted'}`;
+    marker.style.left = `${left}%`;
+    marker.style.top = `${top}%`;
+    marker.setAttribute('aria-label', `${cre.name} - clique para detalhes`);
 
-    const title = document.createElement('div');
-    title.className = 'cre-name';
-    title.textContent = cre.name;
+    marker.innerHTML = `
+      <span class="dot"></span>
+      <span class="label">${cre.name}</span>
+    `;
 
-    const detail = document.createElement('div');
-    detail.className = 'cre-detail';
-    const derived = computeDerived(cre);
-    detail.innerHTML = `Estudantes fora do AEE: <strong>${formatNumber(derived.studentsOutside)}</strong><br>Escolas sem AEE: <strong>${formatNumber(derived.schoolsWithoutAEE)}</strong>`;
-
-    tile.appendChild(title);
-    tile.appendChild(detail);
-    tile.addEventListener('click', () => openPopup(cre.id));
-    grid.appendChild(tile);
+    marker.addEventListener('click', () => openPopup(cre.id));
+    board.appendChild(marker);
   });
 }
 
@@ -200,49 +166,9 @@ function closePopup() {
   popup.style.display = 'none';
 }
 
-function renderAdminTable() {
-  const tbody = document.querySelector('#admin-body');
-  tbody.innerHTML = '';
-  state.creData.forEach((cre) => {
-    const row = document.createElement('tr');
-    row.innerHTML = `
-      <td><strong>${cre.name}</strong></td>
-      <td><input type="number" min="0" value="${cre.publicoEE}" data-id="${cre.id}" data-field="publicoEE"></td>
-      <td><input type="number" min="0" value="${cre.totalSchools}" data-id="${cre.id}" data-field="totalSchools"></td>
-      <td><input type="number" min="0" value="${cre.schoolsWithAEE}" data-id="${cre.id}" data-field="schoolsWithAEE"></td>
-      <td><input type="number" min="0" value="${cre.studentsInAEE}" data-id="${cre.id}" data-field="studentsInAEE"></td>
-      <td><input type="number" min="0" value="${cre.participants}" data-id="${cre.id}" data-field="participants"></td>
-      <td><input type="number" min="0" value="${cre.assessorias.presenciais}" data-id="${cre.id}" data-field="presenciais"></td>
-      <td><input type="number" min="0" value="${cre.assessorias.online}" data-id="${cre.id}" data-field="online"></td>
-      <td class="toggle"><input type="checkbox" ${cre.hasAssessoria ? 'checked' : ''} data-id="${cre.id}" data-field="hasAssessoria"><label>Assessorado</label></td>
-    `;
-    tbody.appendChild(row);
-  });
-
-  tbody.querySelectorAll('input').forEach((input) => {
-    input.addEventListener('input', (event) => {
-      const { id, field } = event.target.dataset;
-      const cre = state.creData.find((item) => item.id === id);
-      if (!cre) return;
-
-      if (field === 'hasAssessoria') {
-        cre.hasAssessoria = event.target.checked;
-      } else if (field === 'presenciais' || field === 'online') {
-        cre.assessorias[field] = Number(event.target.value || 0);
-      } else {
-        cre[field] = Number(event.target.value || 0);
-      }
-      persistData();
-      renderMap();
-      renderSummary();
-    });
-  });
-}
-
 function init() {
   renderMap();
   renderSummary();
-  renderAdminTable();
 
   document.querySelector('#popup .close-btn').addEventListener('click', closePopup);
   document.querySelector('#popup').addEventListener('click', (e) => {
