@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Painel de Assessorias do SAEEX/NAEE - FCEE</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header>
+      <img src="./assets/fcee-logo.svg" alt="Logo FCEE" />
+      <div class="header-title">
+        <h1>Painel de Assessorias do SAEEX/NAEE - FCEE</h1>
+        <span>Coordenadorias Regionais de Educação de Santa Catarina | Monitoramento dinâmico</span>
+      </div>
+      <img src="./assets/gov-sc-logo.svg" alt="Logo Governo de SC" />
+    </header>
+
+    <main>
+      <section id="map-panel">
+        <div class="section-title">
+          <h2>Mapa das CRE assessoradas</h2>
+          <small>Clique em uma CRE para ver os indicadores detalhados</small>
+        </div>
+        <div id="map-grid" aria-label="Mapa das Coordenadorias"></div>
+      </section>
+
+      <section id="summary"></section>
+
+      <section id="admin-panel">
+        <div class="section-title">
+          <h2>Painel administrativo</h2>
+          <small>Alimente o painel com dados atualizados (armazenamento local)</small>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>CRE</th>
+              <th>Público EE</th>
+              <th>Total de Escolas</th>
+              <th>Escolas com AEE</th>
+              <th>Estudantes no AEE</th>
+              <th>Participantes</th>
+              <th>Assessorias presenciais</th>
+              <th>Assessorias on-line</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="admin-body"></tbody>
+        </table>
+        <div id="footer-note">A coluna de CREs é fixa. Utilize o link indicado para validar o grupo de municípios de cada regional e mantenha a alternância dos tons de verde para CREs assessoradas.</div>
+      </section>
+    </main>
+
+    <div id="popup">
+      <div class="card">
+        <div class="popup-header">
+          <div>
+            <div class="popup-title">CRE selecionada</div>
+            <div class="popup-sub"></div>
+          </div>
+          <span class="badge-pill popup-badge"></span>
+          <button class="close-btn" aria-label="Fechar">Fechar</button>
+        </div>
+        <div class="metric-grid"></div>
+      </div>
+    </div>
+
+    <script type="module" src="script.js"></script>
+  </body>
+</html>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 80" role="img" aria-label="Logo Governo de SC">
+  <rect width="260" height="80" rx="12" fill="#006934"/>
+  <text x="130" y="50" text-anchor="middle" font-family="'Montserrat', Arial" font-weight="800" font-size="30" fill="#FFFFFF">Governo SC</text>
+  <rect x="26" y="58" width="70" height="6" rx="3" fill="#E1222A" opacity="0.9"/>
+  <rect x="164" y="16" width="70" height="6" rx="3" fill="#E3E93A" opacity="0.9"/>
+</svg>
