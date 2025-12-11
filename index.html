@@ -6,7 +6,7 @@
     <title>Painel de Assessorias do SAEEX/NAEE - FCEE</title>
     <link rel="stylesheet" href="style.css" />
   </head>
-  <body>
+  <body class="light">
     <header>
       <img src="./assets/fcee-logo.svg" alt="Logo FCEE" />
       <div class="header-title">
@@ -19,37 +19,19 @@
     <main>
       <section id="map-panel">
         <div class="section-title">
-          <h2>Mapa das CRE assessoradas</h2>
-          <small>Clique em uma CRE para ver os indicadores detalhados</small>
+          <div>
+            <h2>Mapa das CRE assessoradas</h2>
+            <small>Clique em uma CRE para ver os indicadores detalhados</small>
+          </div>
+          <a class="ghost-button" href="admin.html">Abrir painel administrativo</a>
         </div>
-        <div id="map-grid" aria-label="Mapa das Coordenadorias"></div>
+        <div id="map-board" aria-label="Mapa das Coordenadorias em Santa Catarina">
+          <img src="./assets/sc-map.svg" alt="Mapa de Santa Catarina" />
+          <div id="map-markers"></div>
+        </div>
       </section>
 
       <section id="summary"></section>
-
-      <section id="admin-panel">
-        <div class="section-title">
-          <h2>Painel administrativo</h2>
-          <small>Alimente o painel com dados atualizados (armazenamento local)</small>
-        </div>
-        <table>
-          <thead>
-            <tr>
-              <th>CRE</th>
-              <th>Público EE</th>
-              <th>Total de Escolas</th>
-              <th>Escolas com AEE</th>
-              <th>Estudantes no AEE</th>
-              <th>Participantes</th>
-              <th>Assessorias presenciais</th>
-              <th>Assessorias on-line</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody id="admin-body"></tbody>
-        </table>
-        <div id="footer-note">A coluna de CREs é fixa. Utilize o link indicado para validar o grupo de municípios de cada regional e mantenha a alternância dos tons de verde para CREs assessoradas.</div>
-      </section>
     </main>
 
     <div id="popup">
